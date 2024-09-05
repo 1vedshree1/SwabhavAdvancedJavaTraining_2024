@@ -1,0 +1,23 @@
+package com.techlabs.bank.service;
+
+import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+
+@Component
+public class JwtUtil {
+
+    private String secretKey = "uv48Kld6McPs9tPt9fEoU4HSmBtmYO+IIEry3otHHV8=";  // Use your actual secret key
+
+    public Claims extractClaims(String token) {
+        return Jwts.parser()
+                .setSigningKey(secretKey)
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public Long extractCustomerId(String token) {
+        return Long.parseLong(extractClaims(token).get("customerId").toString());
+    }
+}

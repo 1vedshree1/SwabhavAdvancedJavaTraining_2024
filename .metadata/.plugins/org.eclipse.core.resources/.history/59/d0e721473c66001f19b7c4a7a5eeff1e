@@ -1,0 +1,32 @@
+package com.techlabs.bank.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.techlabs.bank.dto.TransactionDto;
+import com.techlabs.bank.service.TransactionService;
+
+@RestController
+@RequestMapping("/api/transactions")
+public class TransactionController {
+    
+    @Autowired
+    private TransactionService transactionService;
+
+    @PostMapping("/perform")
+    public ResponseEntity<String> performTransaction(@RequestBody TransactionRequest transactionRequest) {
+        try {
+            Long accountNumber = transactionRequest.getTransferAccountNumber(); // null if not applicable
+            Long fromAccountNumber = transactionRequest.getTransferAccountNumber(); // Assuming it's the same for debit/credit
+            String transactionType = transactionRequest.getTransactionType();
+            double amount = transactionRequest.getAmount();
+
+            transactionService.performTransaction(transactionType, amount, accountNumber, fromAccountNumber);
+
+            return ResponseEntity.ok("Transaction successful");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Transaction failed: " + e.getMessage());
+        }
+    }
+}

@@ -1,0 +1,54 @@
+package com.techlabs.bank.service;
+
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.techlabs.bank.entity.Account;
+import com.techlabs.bank.entity.Transaction;
+import com.techlabs.bank.entity.TransactionType;
+import com.techlabs.bank.repository.AccountRepository;
+import com.techlabs.bank.repository.TransactionRepository;
+
+import jakarta.transaction.Transactional;
+
+public class TransactionServiceImpl implements TransactionService{
+	
+	@Autowired
+	TransactionRepository transactionRepo;
+	@Autowired
+	AccountRepository accountRepo;
+
+	@Transactional
+	@Override
+	public void debit(Account account, double amount) {
+		if(account.getBalance()<amount) {
+			throw new IllegalArgumentException("Insufficient funds");
+		}
+		account.setBalance(account.getBalance()-amount);
+		accountRepo.save(account);	
+		
+		Transaction transaction = new Transaction();
+		transaction.setAccount(account);
+		transaction.setAmount(amount);
+		transaction.setTransactionType(TransactionType.DEBIT);
+		transaction.setDate(new Date());
+		
+		transactionRepo.save(transaction);
+	}
+
+	@Transactional
+	@Override
+	public void credit(Account account, double amount) {
+		
+		
+	}
+
+	@Transactional
+	@Override
+	public void transfer(Account fromAccount, Account toAccount, double balance) {
+		// TODO Auto-generated method stub
+		
+	}
+
+}

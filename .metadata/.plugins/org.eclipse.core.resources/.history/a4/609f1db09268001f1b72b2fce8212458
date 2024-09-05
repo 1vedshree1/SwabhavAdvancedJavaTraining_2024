@@ -1,0 +1,5 @@
+package com.techlabs.bank.repository;
+
+public interface UsersRepository {
+
+}

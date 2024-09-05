@@ -1,0 +1,7 @@
+package com.techlabs.batch.config;
+
+import org.springframework.batch.core.JobExecutionListener;
+
+public class JobCompletionNotificationListner implements JobExecutionListener {
+
+}

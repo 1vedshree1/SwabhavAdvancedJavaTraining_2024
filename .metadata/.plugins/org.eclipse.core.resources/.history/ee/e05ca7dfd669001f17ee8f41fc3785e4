@@ -1,0 +1,5 @@
+package com.techlabs.batch.repository;
+
+public interface EmployeeRepository {
+
+}

@@ -1,0 +1,33 @@
+package com.techlabs.bank.service;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
+public class JwtUtil {
+
+    @Value("${jwt.secret.key}")
+    private String secretKey; // Use environment variables or properties for the secret key
+
+    public Claims extractClaims(String token) {
+        try {
+            return Jwts.parser()
+                       .setSigningKey(secretKey)
+                       .parseClaimsJws(token)
+                       .getBody();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid token");
+        }
+    }
+
+    public Long extractCustomerId(String token) {
+        Claims claims = extractClaims(token);
+        Object customerId = claims.get("customerId");
+        if (customerId == null) {
+            throw new IllegalArgumentException("Customer ID not found in token");
+        }
+        return Long.parseLong(customerId.toString());
+    }
+}

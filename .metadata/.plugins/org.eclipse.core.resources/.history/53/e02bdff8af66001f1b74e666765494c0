@@ -1,0 +1,5 @@
+package com.techlabs.security.dto;
+
+public class JwtAuth {
+
+}

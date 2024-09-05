@@ -1,0 +1,42 @@
+package com.techlabs.security.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.techlabs.security.dto.LoginDto;
+import com.techlabs.security.dto.RegistrationDto;
+import com.techlabs.security.entity.User;
+import com.techlabs.security.repository.RoleRepository;
+import com.techlabs.security.repository.UserRepository;
+import com.techlabs.security.security.JwtTokenProvider;
+
+@Service
+public class AuthServiceImpl implements AuthService {
+
+	@Autowired
+	private AuthenticationManager authenticationManager;
+	@Autowired
+	private UserRepository userRepo;
+	@Autowired
+	private RoleRepository RoleRepo;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private JwtTokenProvider jwtTokenProvider;
+	@Override
+	public User register(RegistrationDto registration) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String login(LoginDto loginDto) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	
+
+}

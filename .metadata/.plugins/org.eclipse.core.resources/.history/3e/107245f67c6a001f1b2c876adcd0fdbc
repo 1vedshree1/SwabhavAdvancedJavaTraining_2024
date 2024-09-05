@@ -1,0 +1,88 @@
+package com.techlabs.batch.config;
+
+import javax.sql.DataSource;
+
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import com.techlabs.batch.entity.Employee;
+
+@Configuration
+@EnableBatchProcessing
+public class EmployeeBatchConfig {
+
+    @Bean
+    public DataSourceTransactionManager transactionManager(DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Bean
+    public Job exportUserJob(JobBuilderFactory jobBuilderFactory, Step step1) {
+        return jobBuilderFactory.get("exportUserJob")
+                .start(step1)
+                .build();
+    }
+
+    @Bean
+    public Job importUserJob(JobBuilderFactory jobBuilderFactory, Step step1) {
+        return jobBuilderFactory.get("importUserJob")
+                .start(step1)
+                .build();
+    }
+
+    @Bean
+    public JdbcCursorItemReader<Employee> reader(DataSource dataSource) {
+        return new JdbcCursorItemReaderBuilder<Employee>()
+                .dataSource(dataSource)
+                .name("employeeItemReader")
+                .sql("SELECT employee_id, name, salary FROM employees")
+                .rowMapper((rs, rowNum) -> {
+                    Employee employee = new Employee();
+                    employee.setEmployeeId(rs.getInt("employee_id"));
+                    employee.setName(rs.getString("name"));
+                    employee.setSalary(rs.getDouble("salary"));
+                    return employee;
+                })
+                .build();
+    }
+
+    @Bean
+    public FlatFileItemWriter<Employee> writer() {
+        BeanWrapperFieldExtractor<Employee> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[] {"employeeId", "name", "salary"});
+        
+        DelimitedLineAggregator<Employee> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+        lineAggregator.setFieldExtractor(fieldExtractor);
+        
+        return new FlatFileItemWriterBuilder<Employee>()
+                .name("employeeItemWriter")
+                .resource(new FileSystemResource("output/employee.csv"))
+                .lineAggregator(lineAggregator)
+                .build();
+    }
+
+    @Bean
+    public Step step1(StepBuilderFactory stepBuilderFactory, FlatFileItemWriter<Employee> writer, JdbcCursorItemReader<Employee> reader, PlatformTransactionManager transactionManager) {
+        return stepBuilderFactory.get("step1")
+                .<Employee, Employee>chunk(10)
+                .reader(reader)
+                .writer(writer)
+                .transactionManager(transactionManager)
+                .build();
+    }
+}

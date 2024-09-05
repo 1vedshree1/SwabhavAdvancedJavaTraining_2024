@@ -1,0 +1,37 @@
+package com.techlabs.bank.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.techlabs.bank.entity.Account;
+import com.techlabs.bank.service.TransactionService;
+
+@RestController
+@RequestMapping("/bankapp")
+public class TransactinController {
+	
+	@Autowired
+	TransactionService transactionService;
+	
+	@PostMapping("transaction/debit")
+	public String debit(Account account, double amount) {
+		transactionService.debit(account, amount);
+		return amount+" debited successfully";	
+	}
+	
+	@PostMapping("transaction/credit")
+	public String credit(Account account, double amount) {
+		transactionService.credit(account, amount);
+		return amount+" credited successfully";	
+	}
+	
+	@PostMapping("transaction/transfer")
+	public String transfer(Account fromAccount, Account toAccount, double amount) {
+		transactionService.transfer(fromAccount, toAccount, amount);
+		return amount+" debited from "+fromAccount.getAccountNumber()+" and credited to "+toAccount.getAccountNumber();
+		
+	}
+
+}

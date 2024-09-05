@@ -1,0 +1,10 @@
+package com.techlabs.security.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.techlabs.security.entity.Role;
+import com.techlabs.security.entity.User;
+
+public interface RoleRepository extends JpaRepository<Role, Integer> {
+
+}

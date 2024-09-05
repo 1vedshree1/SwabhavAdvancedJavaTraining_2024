@@ -1,0 +1,5 @@
+package com.techlabs.security.security;
+
+public class JwtAuthenticationFilter {
+
+}

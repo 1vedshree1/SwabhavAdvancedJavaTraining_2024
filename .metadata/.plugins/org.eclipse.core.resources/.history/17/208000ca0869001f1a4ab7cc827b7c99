@@ -1,0 +1,5 @@
+package com.techlabs.security.repository;
+
+public interface CustomerRepository {
+
+}

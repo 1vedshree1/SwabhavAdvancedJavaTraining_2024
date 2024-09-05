@@ -1,0 +1,9 @@
+spring.application.name=14_bank-app
+spring.datasource.url=jdbc:mysql://localhost:3306/springbankdb
+spring.datasource.username=root
+spring.datasource.password=root123
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.security.user.password=vedshree
+app-jwt-expiration-milliseconds=604800000
+app.jwt-secrete=uv48Kld6McPs9tPt9fEoU4HSmBtmYO+IIEry3otHHV8=

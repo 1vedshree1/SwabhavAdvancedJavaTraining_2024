@@ -1,0 +1,14 @@
+package com.techlabs.bank.service;
+
+import com.techlabs.bank.dto.PageResponseDto;
+import com.techlabs.bank.dto.TransactionDto;
+import com.techlabs.bank.entity.Account;
+
+public interface TransactionService {
+	
+	public void debit(Account account, double amount);
+	public void credit(Account account, double amount);
+	public void transfer(Account fromAccount, Account toAccount,double amount);
+	void addTransaction(String transactionType, double amount, Long transferAccountNumber, Long accountNumber);
+
+}

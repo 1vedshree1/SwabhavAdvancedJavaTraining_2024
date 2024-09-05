@@ -1,0 +1,30 @@
+package com.techlabs.security.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.techlabs.security.entity.Customer;
+import com.techlabs.security.repository.CustomerRepository;
+
+@Service
+public class CustomerServiceImpl implements CustomerService {
+	@Autowired
+	CustomerRepository customerRepo;
+
+	@Override
+	public List<Customer> getAllCustomers() {
+		
+		return customerRepo.findAll();
+	}
+
+	@Override
+	public Customer getCustomerById(int customerId) {
+		
+		Customer customer = customerRepo.findById(customerId).orElseThrow(()->new NullPointerException("customer not found"));
+		
+		return customer;
+	}
+
+}

@@ -1,0 +1,5 @@
+package com.techlabs.captcha.repository;
+
+public interface CaptchaRepository {
+
+}

@@ -1,0 +1,5 @@
+package com.techlabs.batch.config;
+
+public class EmployeeBatchConfig {
+
+}
