@@ -1,9 +1,0 @@
-package com.techlabs.captcha.repository;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.techlabs.captcha.entity.Captcha;
-
-public interface CaptchaRepository extends JpaRepository<Captcha, String>{
-
-}

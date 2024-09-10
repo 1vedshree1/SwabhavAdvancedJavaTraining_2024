@@ -51,6 +51,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(request -> request
                 .requestMatchers("/api/register").authenticated()
                 .requestMatchers("/api/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/bankapp/captcha").permitAll()
                 .requestMatchers(HttpMethod.GET, "/bankapp/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/bankapp/**").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/bankapp/**").authenticated()

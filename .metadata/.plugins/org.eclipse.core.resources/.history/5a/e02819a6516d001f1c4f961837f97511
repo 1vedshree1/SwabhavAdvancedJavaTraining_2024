@@ -1,0 +1,72 @@
+package com.techlabs.bank.service;
+
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import com.techlabs.bank.config.CaptchaConfig;
+
+@Service
+public class CaptchaServiceImpl implements CaptchaService {
+
+    @Autowired
+    private CaptchaConfig captchaConfig;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    @Override
+    public boolean verifyCaptcha(String response) {
+        String url = "https://www.google.com/recaptcha/api/siteverify";
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("secret", captchaConfig.getSecretKey());
+        body.add("response", response);
+
+        ResponseEntity<CaptchaResponse> responseEntity = restTemplate.postForEntity(url, body, CaptchaResponse.class);
+
+        if (responseEntity.getStatusCode() == HttpStatus.OK) {
+            CaptchaResponse captchaResponse = responseEntity.getBody();
+            if (captchaResponse != null && captchaResponse.isSuccess()) {
+                return true;
+            } else {
+                System.err.println("CAPTCHA verification failed with error codes: " + captchaResponse.getErrorCodes());
+            }
+        } else {
+            System.err.println("CAPTCHA verification request failed with status code: " + responseEntity.getStatusCode());
+        }
+
+        return false;
+    }
+
+
+
+    // Define CaptchaResponse class with necessary fields
+    private static class CaptchaResponse {
+        private boolean success;
+        private List<String> errorCodes;
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
+
+        public List<String> getErrorCodes() {
+            return errorCodes;
+        }
+
+        public void setErrorCodes(List<String> errorCodes) {
+            this.errorCodes = errorCodes;
+        }
+    }
+}
+
+

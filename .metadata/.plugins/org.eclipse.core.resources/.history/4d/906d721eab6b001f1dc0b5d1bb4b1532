@@ -1,0 +1,5 @@
+package com.techlabs.bank.service;
+
+public interface NotificationService {
+
+}

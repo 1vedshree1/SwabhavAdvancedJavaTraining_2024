@@ -21,7 +21,7 @@ import com.techlabs.bank.dto.ProfileDto;
 import com.techlabs.bank.entity.Customer;
 import com.techlabs.bank.entity.User;
 import com.techlabs.bank.entity.UserType;
-import com.techlabs.bank.entity.Users;
+import com.techlabs.bank.entity.User;
 import com.techlabs.bank.exception.CustomerNotFoundException;
 import com.techlabs.bank.exception.IncorrectPasswordException;
 import com.techlabs.bank.repository.CustomerRepository;
@@ -136,7 +136,7 @@ public class CustomerServiceImpl implements CustomerService{
    	  System.out.println(firstName);
 		
 		Customer customer = customerRepo.findByFirstName(firstName).orElseThrow(()-> new NullPointerException("customer not found"));
-		Users user = customer.getUser();
+		User user = customer.getUser();
 		
 		 if (profile.getFirstName() != null && !profile.getFirstName().isEmpty()) {
 		        customer.setFirstName(profile.getFirstName());

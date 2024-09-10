@@ -20,7 +20,7 @@ import com.techlabs.bank.dto.LoginDto;
 import com.techlabs.bank.dto.RegistrationDto;
 import com.techlabs.bank.entity.Customer;
 import com.techlabs.bank.entity.Role;
-import com.techlabs.bank.entity.Users;
+import com.techlabs.bank.entity.User;
 import com.techlabs.bank.exception.UserApiException;
 import com.techlabs.bank.repository.CustomerRepository;
 import com.techlabs.bank.repository.RoleRepository;
@@ -50,16 +50,24 @@ public class AuthServiceImpl implements AuthService {
 	private PasswordEncoder passwordEncoder;
 	@Autowired
 	private JwtTokenProvider jwtTokenProvider;
+	@Autowired
+    private CaptchaService captchaService;
 	
 	private static final Logger logger = LoggerFactory.getLogger(AuthServiceImpl.class);
 	
 	@Override 
-	 public Users register(RegistrationDto registerDto) { 
+	 public User register(RegistrationDto registerDto, String captchaResponse) { 
+		
+		
+		
+		if (!captchaService.validateCaptcha(captchaResponse)) {
+            throw new UserApiException(HttpStatus.BAD_REQUEST, "Captcha verification failed");
+        }
 	     if (userRepo.existsByUserName(registerDto.getUserName())) { 
 	         throw new UserApiException(HttpStatus.BAD_REQUEST, "User already exists"); 
 	     } 
 	 
-	     Users user = new Users(); 
+	     User user = new User(); 
 	     user.setUserName(registerDto.getUserName()); 
 	     user.setPassword(passwordEncoder.encode(registerDto.getPassword())); 
 	 
@@ -77,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
 	         throw new UserApiException(HttpStatus.BAD_REQUEST, "Customer already exists"); 
 	     } 
 	 
-	     Users user = new Users(); 
+	     User user = new User(); 
 	     user.setUserName(customerDto.getFirstName()); 
 	     user.setPassword(passwordEncoder.encode(customerDto.getPassword())); 
 	 
@@ -103,7 +111,14 @@ public class AuthServiceImpl implements AuthService {
 	
 
 	@Override
-	 public String login(LoginDto loginDto) {
+	 public String login(LoginDto loginDto, String captchaResponse) {
+		
+		
+		
+		if (!captchaService.validateCaptcha(captchaResponse)) {
+            throw new UserApiException(HttpStatus.BAD_REQUEST, "Captcha verification failed");
+        }
+		
 	     try {
 	         Authentication authentication = authenticationManager.authenticate(
 	                 new UsernamePasswordAuthenticationToken(

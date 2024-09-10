@@ -1,0 +1,15 @@
+package com.techlabs.bank.config;
+
+
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class CaptchaConfig {
+
+    @Value("${captcha.secret.key}")
+    private String secretKey;
+
+    
+}

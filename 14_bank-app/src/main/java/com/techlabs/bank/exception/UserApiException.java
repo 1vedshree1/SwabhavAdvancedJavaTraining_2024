@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 @Data
 @AllArgsConstructor
 @RequiredArgsConstructor
-public class UserApiException extends RuntimeException{
+public class UserApiException extends BaseException{
 	private HttpStatus status;
 	private String message;
 

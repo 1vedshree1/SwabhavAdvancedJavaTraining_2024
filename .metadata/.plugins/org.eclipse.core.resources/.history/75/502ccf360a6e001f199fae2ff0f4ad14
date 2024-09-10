@@ -1,0 +1,27 @@
+package com.techlabs.bank.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.techlabs.bank.service.CaptchaService;
+
+@RestController
+public class CaptchaController {
+
+    @Autowired
+    private CaptchaService captchaService;
+
+    @PostMapping("/verify-captcha")
+    public ResponseEntity<String> verifyCaptcha(@RequestParam("g-recaptcha-response") String recaptchaResponse) {
+        boolean isValid = captchaService.verifyCaptcha(recaptchaResponse);
+        if (isValid) {
+            return ResponseEntity.ok("CAPTCHA verified successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("CAPTCHA verification failed.");
+        }
+    }
+}

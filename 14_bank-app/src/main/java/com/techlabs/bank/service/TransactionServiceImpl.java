@@ -21,6 +21,7 @@ import com.techlabs.bank.entity.Account;
 import com.techlabs.bank.entity.Transaction;
 import com.techlabs.bank.entity.TransactionType;
 import com.techlabs.bank.repository.AccountRepository;
+import com.techlabs.bank.repository.CustomerRepository;
 import com.techlabs.bank.repository.TransactionRepository;
 
 @Service
@@ -30,12 +31,25 @@ public class TransactionServiceImpl implements TransactionService {
     private TransactionRepository transactionRepo;
     @Autowired
     private AccountRepository accountRepo;
+    @Autowired
+    private CustomerRepository customerRepo;
+    @Autowired
+    private EmailNotificationService emailNotification;
+    
+    public String getEmailByUsername(String username) {
+        
+        return customerRepo.findByFirstName(username)
+                           .map(customer -> customer.getEmail())
+                           .orElseThrow(() -> new IllegalArgumentException("Email not found for user: " + username));
+    }
 
     @Transactional
     @Override
     public void addTransaction(String transactionType, double amount, Long transferAccountNumber, Long fromAccountNumber) {
     	Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName(); 
+        
+       
 
        
         List<Account> userAccounts = accountRepo.findByCustomer_FirstName(username);
@@ -52,6 +66,11 @@ public class TransactionServiceImpl implements TransactionService {
                 : null;
         if (fromAccount.getAccountNumber() == transferAccount.getAccountNumber()) {
             throw new IllegalArgumentException("Cannot transfer money to the same account");
+        }
+        
+        String message = String.format("Transaction Type: %s\nAmount: %.2f\nFrom Account: %d\n", transactionType, amount, fromAccountNumber);
+        if (transactionType.equalsIgnoreCase("TRANSFER")) {
+            message += String.format("To Account: %d\n", transferAccountNumber);
         }
 
         switch (transactionType.toUpperCase()) {
@@ -70,6 +89,9 @@ public class TransactionServiceImpl implements TransactionService {
             default:
                 throw new IllegalArgumentException("Invalid transaction type");
         }
+        
+        String recipientEmail = getEmailByUsername(username);
+        emailNotification.sendTransactionNotification(recipientEmail, message);
     }
 
     private void debit(Account account, double amount) {

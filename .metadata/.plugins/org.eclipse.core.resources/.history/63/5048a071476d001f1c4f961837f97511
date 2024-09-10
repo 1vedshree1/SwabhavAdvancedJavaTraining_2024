@@ -1,0 +1,36 @@
+package com.techlabs.bank.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.techlabs.bank.config.CaptchaConfig;
+
+@Service
+public class CaptchaServiceImpl implements CaptchaService {
+
+	@Autowired
+    private CaptchaConfig captchaConfig;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+	@Override
+	public boolean verifyCaptcha(String response) {
+		String url = "https://www.google.com/recaptcha/api/siteverify?secret=" 
+	            + captchaConfig.getSecretKey() + "&response=" + response;
+	        CaptchaResponse captchaResponse = restTemplate.postForObject(url, null, CaptchaResponse.class);
+	        return captchaResponse != null && captchaResponse.isSuccess();
+		
+	}
+
+	private static class CaptchaResponse {
+        private boolean success;
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
+    }
+}

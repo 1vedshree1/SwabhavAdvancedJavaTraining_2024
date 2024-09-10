@@ -46,7 +46,9 @@ public class Customer {
 	List<Account> accounts;
 	@OneToOne(cascade=CascadeType.ALL)
 	@JoinColumn(name="userId")
-	private Users user;
+	private User user;
 
+	 @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+	    private List<Document> documents;
 	
 }

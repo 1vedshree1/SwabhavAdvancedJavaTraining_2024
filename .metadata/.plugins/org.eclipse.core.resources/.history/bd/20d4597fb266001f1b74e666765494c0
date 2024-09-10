@@ -1,5 +1,0 @@
-package com.techlabs.security.security;
-
-public interface CustomUserDetailsService implements UserDetailsService {
-
-}

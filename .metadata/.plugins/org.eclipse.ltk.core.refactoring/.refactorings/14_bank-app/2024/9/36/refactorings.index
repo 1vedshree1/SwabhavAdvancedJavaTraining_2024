@@ -2,3 +2,6 @@
 1725216225028	Rename package 'com.techlabs.security.config'
 1725216306236	Rename package 'com.techlabs.security.security'
 1725387098657	Delete element
+1725556816773	Rename type 'NotificationService'
+1725708778753	Delete element
+1725708847680	Rename type 'Users'

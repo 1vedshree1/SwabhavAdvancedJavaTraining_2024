@@ -1,0 +1,14 @@
+spring.application.name=14_bank-app
+spring.datasource.url=jdbc:mysql://localhost:3306/securebankdb
+spring.datasource.username=root
+spring.datasource.password=root123
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+app-jwt-expiration-milliseconds=604800000
+app.jwt-secrete=uv48Kld6McPs9tPt9fEoU4HSmBtmYO+IIEry3otHHV8=
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=vedshreebhosale91@gmail.com
+spring.mail.password=jmvl nlha bojt kzhu
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true

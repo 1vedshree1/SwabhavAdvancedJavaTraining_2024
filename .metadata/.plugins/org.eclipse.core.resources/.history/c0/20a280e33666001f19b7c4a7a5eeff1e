@@ -1,5 +1,0 @@
-package com.techlabs.bank.service;
-
-public class TransactionServiceImpl {
-
-}

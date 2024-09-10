@@ -1,0 +1,24 @@
+package com.techlabs.bank.config;
+
+
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+
+@AllArgsConstructor
+@RequiredArgsConstructor
+@Data
+@Configuration
+public class CaptchaConfig {
+
+    @Value("${recaptcha.secret.key}")
+    private String secretKey;
+    @Value("${recaptcha.site.key}")
+    private String siteKey;
+
+    
+}
