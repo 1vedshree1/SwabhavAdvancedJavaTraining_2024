@@ -1,0 +1,103 @@
+package com.techlabs.bank.config;
+
+import com.techlabs.bank.dto.TransactionDto;
+import com.techlabs.bank.entity.Transaction;
+import com.techlabs.bank.repository.TransactionRepository;
+
+import jakarta.persistence.EntityManagerFactory;
+
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JpaPagingItemReader;
+import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
+import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    @Autowired
+    private JobBuilderFactory jobBuilderFactory;
+
+    @Autowired
+    private StepBuilderFactory stepBuilderFactory;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
+
+    @Autowired
+    private CsvFileWriter csvFileWriter;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Value("${batch.output.file}")
+    private String outputFilePath;
+
+    @Bean
+    public Job generatePassbookJob(JobExecutionListener listener, Step step1) {
+        return jobBuilderFactory.get("generatePassbookJob")
+                .listener(listener)
+                .flow(step1)
+                .end()
+                .build();
+    }
+
+    @Bean
+    public Step step1(ItemReader<Transaction> reader, ItemProcessor<Transaction, TransactionDto> processor,
+                      ItemWriter<TransactionDto> writer) {
+        return stepBuilderFactory.get("step1")
+                .<Transaction, TransactionDto>chunk(10)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Transaction> reader() {
+        return new JpaPagingItemReaderBuilder<Transaction>()
+                .name("transactionItemReader")
+                .entityManagerFactory(entityManagerFactory)
+                .queryString("SELECT t FROM Transaction t WHERE t.account.accountNumber = :accountNumber")
+                .parameterValues(Map.of("accountNumber", YOUR_ACCOUNT_NUMBER)) 
+                .build();
+    }
+
+    @Bean
+    public ItemProcessor<Transaction, TransactionDto> processor() {
+        return transaction -> {
+            TransactionDto dto = new TransactionDto();
+            dto.setTransactionId(transaction.getTransactionId());
+            dto.setTransactionType(transaction.getTransactionType().toString());
+            dto.setAmount(transaction.getAmount());
+            dto.setAccountNumber(transaction.getAccount().getAccountNumber());
+            dto.setTransferAccountNumber(transaction.getTransferAccountNumber());
+            dto.setDate(transaction.getDate());
+            return dto;
+        };
+    }
+
+    @Bean
+    public CsvFileWriter csvFileWriter() {
+        return new CsvFileWriter();
+    }
+}

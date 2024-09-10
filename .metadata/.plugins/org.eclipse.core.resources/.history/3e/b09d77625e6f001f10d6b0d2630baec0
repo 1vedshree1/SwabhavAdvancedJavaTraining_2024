@@ -1,0 +1,29 @@
+package com.techlabs.bank.config;
+
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.stereotype.Component;
+
+import com.techlabs.bank.dto.TransactionDto;
+
+@Component
+public class TransactionItemWriter {
+
+    public FlatFileItemWriter<TransactionDto> writer() {
+        BeanWrapperFieldExtractor<TransactionDto> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[]{"transactionId", "transactionType", "amount", "accountNumber", "transferAccountNumber", "date"});
+
+        DelimitedLineAggregator<TransactionDto> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+        lineAggregator.setFieldExtractor(fieldExtractor);
+
+        return new FlatFileItemWriterBuilder<TransactionDto>()
+            .name("transactionItemWriter")
+            .resource(new FileSystemResource("passbook.csv")) // File name should be unique or handled differently
+            .lineAggregator(lineAggregator)
+            .build();
+    }
+}

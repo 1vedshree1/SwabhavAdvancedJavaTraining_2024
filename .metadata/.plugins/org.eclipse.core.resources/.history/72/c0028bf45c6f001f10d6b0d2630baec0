@@ -1,0 +1,40 @@
+package com.techlabs.bank.config;
+
+import java.util.Iterator;
+import java.util.List;
+
+import org.springframework.batch.item.ItemReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.techlabs.bank.dto.TransactionDto;
+import com.techlabs.bank.entity.Transaction;
+import com.techlabs.bank.repository.TransactionRepository;
+
+@Component
+public class TransactionItemReader implements ItemReader<TransactionDto> {
+
+    @Autowired
+    private TransactionRepository transactionRepo;
+
+    private Iterator<TransactionDto> transactionsIterator;
+
+    private Long accountNumber;
+
+    public void setAccountNumber(Long accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
+    @Override
+    public TransactionDto read() throws Exception {
+        if (transactionsIterator == null) {
+            List<Transaction> transactions = transactionRepo.findByAccount_AccountNumber(accountNumber);
+            transactionsIterator = transactions.stream()
+                                               .map(this::toTransactionDto)
+                                               .iterator();
+        }
+
+        return transactionsIterator.hasNext() ? transactionsIterator.next() : null;
+    }
+
+}

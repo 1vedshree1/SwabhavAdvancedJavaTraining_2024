@@ -1,0 +1,49 @@
+package com.techlabs.bank.config;
+
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.techlabs.bank.dto.TransactionDto;
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    @Autowired
+    private TransactionItemReader transactionItemReader;
+
+    @Autowired
+    private TransactionItemWriter transactionItemWriter;
+
+    @Bean
+    public FlatFileItemWriter<TransactionDto> writer() {
+        return transactionItemWriter.writer(); // Reuse the existing writer bean
+    }
+
+    @Bean
+    public Step step1() {
+        // Directly create a StepBuilder instance
+        StepBuilder stepBuilder = new StepBuilder("step1");
+        return stepBuilder
+                .<TransactionDto, TransactionDto>chunk(10) // Process items in chunks
+                .reader(transactionItemReader)
+                .writer(writer())
+                .build();
+    }
+
+    @Bean
+    public Job exportPassbookJob() {
+        // Directly create a JobBuilder instance
+        JobBuilder jobBuilder = new JobBuilder("exportPassbookJob");
+        return jobBuilder
+                .start(step1())
+                .build();
+    }
+}

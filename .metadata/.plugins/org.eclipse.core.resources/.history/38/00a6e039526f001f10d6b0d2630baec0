@@ -1,0 +1,60 @@
+package com.techlabs.bank.config;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.batch.item.file.transform.LineAggregator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+
+import com.techlabs.bank.dto.TransactionDto;
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfig {
+
+    @Autowired
+    private JobBuilderFactory jobBuilderFactory;
+
+    @Autowired
+    private StepBuilderFactory stepBuilderFactory;
+
+    @Bean
+    public FlatFileItemWriter<TransactionDto> writer() {
+        // Define a LineAggregator for the TransactionDto
+        LineAggregator<TransactionDto> lineAggregator = new DelimitedLineAggregator<TransactionDto>() {{
+            setDelimiter(",");
+            setFieldExtractor(new BeanWrapperFieldExtractor<TransactionDto>() {{
+                setNames(new String[]{"transactionId", "transactionType", "amount", "accountNumber", "transferAccountNumber", "date"});
+            }});
+        }};
+
+        return new FlatFileItemWriterBuilder<TransactionDto>()
+            .name("transactionItemWriter")
+            .resource(new FileSystemResource("passbook.csv"))
+            .lineAggregator(lineAggregator)
+            .build();
+    }
+
+    @Bean
+    public Step step1() {
+        return stepBuilderFactory.get("step1")
+            .<TransactionDto, TransactionDto>chunk(10)
+            .writer(writer())
+            .build();
+    }
+
+    @Bean
+    public Job exportPassbookJob() {
+        return jobBuilderFactory.get("exportPassbookJob")
+            .start(step1())
+            .build();
+    }
+}

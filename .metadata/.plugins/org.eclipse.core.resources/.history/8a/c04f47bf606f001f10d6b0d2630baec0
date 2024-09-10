@@ -1,0 +1,111 @@
+package com.techlabs.bank.config;
+
+import com.techlabs.bank.entity.Transaction;
+import com.techlabs.bank.repository.TransactionRepository;
+import com.techlabs.bank.dto.TransactionDto;
+import com.techlabs.bank.service.TransactionServiceImpl;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.annotation.JobScope;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.job.builder.JobBuilderHelper;
+import org.springframework.batch.core.listener.JobExecutionListenerSupport;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.core.writer.ItemWriter;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.LineAggregator;
+import org.springframework.batch.item.file.transform.DefaultLineAggregator;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.LineAggregator;
+import org.springframework.batch.item.file.transform.DefaultLineAggregator;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DefaultLineAggregator;
+import org.springframework.batch.item.file.transform.LineAggregator;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DefaultLineAggregator;
+import org.springframework.batch.item.file.transform.LineAggregator;
+import org.springframework.batch.item.file.transform.DefaultLineAggregator;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
+import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
+import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Date;
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfiguration {
+
+    @Autowired
+    private JobBuilderFactory jobBuilderFactory;
+
+    @Autowired
+    private StepBuilderFactory stepBuilderFactory;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Bean
+    public FlatFileItemWriter<TransactionDto> writer() {
+        return new FlatFileItemWriterBuilder<TransactionDto>()
+                .name("transactionItemWriter")
+                .resource(new FileSystemResource("transactions.csv"))
+                .lineAggregator(new DefaultLineAggregator<TransactionDto>() {{
+                    setDelimiter(",");
+                    setFieldExtractor(new BeanWrapperFieldExtractor<TransactionDto>() {{
+                        setNames(new String[] {"transactionId", "transactionType", "amount", "accountNumber", "transferAccountNumber", "date"});
+                    }});
+                }})
+                .build();
+    }
+
+    @Bean
+    public ItemReader<TransactionDto> reader() {
+        return new TransactionItemReader(transactionRepository);
+    }
+
+    @Bean
+    public Step step1() {
+        return stepBuilderFactory.get("step1")
+                .<TransactionDto, TransactionDto>chunk(10)
+                .reader(reader())
+                .writer(writer())
+                .build();
+    }
+
+    @Bean
+    public Job exportTransactionJob(JobCompletionNotificationListener listener) {
+        return jobBuilderFactory.get("exportTransactionJob")
+                .listener(listener)
+                .flow(step1())
+                .end()
+                .build();
+    }
+
+    @Bean
+    public JobCompletionNotificationListener listener() {
+        return new JobCompletionNotificationListener();
+    }
+}

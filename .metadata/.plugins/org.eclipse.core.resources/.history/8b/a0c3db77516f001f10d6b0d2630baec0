@@ -1,0 +1,40 @@
+package com.techlabs.bank.config;
+
+import java.util.List;
+
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.core.io.FileSystemResource;
+
+import com.techlabs.bank.dto.TransactionDto;
+
+public class TransactionDtoWriter implements ItemWriter<TransactionDto> {
+
+    private final FlatFileItemWriter<TransactionDto> writer;
+
+    public TransactionDtoWriter() {
+        this.writer = new FlatFileItemWriterBuilder<TransactionDto>()
+            .name("transactionItemWriter")
+            .resource(new FileSystemResource("passbook.csv"))
+            .lineAggregator(new DelimitedLineAggregator<TransactionDto>() {{
+                setDelimiter(",");
+                setFieldExtractor(new BeanWrapperFieldExtractor<TransactionDto>() {{
+                    setNames(new String[]{"transactionId", "transactionType", "amount", "accountNumber", "transferAccountNumber", "date"});
+                }});
+            }})
+            .build();
+    }
+
+    
+
+	@Override
+	public void write(Chunk<? extends TransactionDto> arg0) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+}

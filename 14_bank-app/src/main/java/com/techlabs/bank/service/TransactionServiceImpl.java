@@ -1,10 +1,19 @@
 package com.techlabs.bank.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionException;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +33,7 @@ import com.techlabs.bank.repository.AccountRepository;
 import com.techlabs.bank.repository.CustomerRepository;
 import com.techlabs.bank.repository.TransactionRepository;
 
+
 @Service
 public class TransactionServiceImpl implements TransactionService {
 
@@ -35,9 +45,16 @@ public class TransactionServiceImpl implements TransactionService {
     private CustomerRepository customerRepo;
     @Autowired
     private EmailNotificationService emailNotification;
-    
+
+    @Autowired
+    private JobLauncher jobLauncher;
+
+    @Autowired
+    private Job exportJob;
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
+
     public String getEmailByUsername(String username) {
-        
         return customerRepo.findByFirstName(username)
                            .map(customer -> customer.getEmail())
                            .orElseThrow(() -> new IllegalArgumentException("Email not found for user: " + username));
@@ -46,17 +63,13 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional
     @Override
     public void addTransaction(String transactionType, double amount, Long transferAccountNumber, Long fromAccountNumber) {
-    	Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName(); 
         
-       
-
-       
         List<Account> userAccounts = accountRepo.findByCustomer_FirstName(username);
 
-       
         Account fromAccount = userAccounts.stream()
-                                          .filter(account -> account.getAccountNumber()==fromAccountNumber)
+                                          .filter(account -> account.getAccountNumber() == fromAccountNumber)
                                           .findFirst()
                                           .orElseThrow(() -> new IllegalArgumentException("Source account not found or does not belong to user"));
 
@@ -64,7 +77,7 @@ public class TransactionServiceImpl implements TransactionService {
                 ? accountRepo.findByAccountNumber(transferAccountNumber)
                     .orElseThrow(() -> new IllegalArgumentException("Transfer account not found"))
                 : null;
-        if (fromAccount.getAccountNumber() == transferAccount.getAccountNumber()) {
+        if (transferAccount != null && fromAccount.getAccountNumber() == transferAccount.getAccountNumber()) {
             throw new IllegalArgumentException("Cannot transfer money to the same account");
         }
         
@@ -147,7 +160,6 @@ public class TransactionServiceImpl implements TransactionService {
         creditTransaction.setAccount(toAccount);
         creditTransaction.setTransactionType(TransactionType.CREDIT);
         creditTransaction.setAmount(amount);
-        
         creditTransaction.setDate(new Date());
 
         transactionRepo.save(creditTransaction);
@@ -156,21 +168,17 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional
     @Override
     public PageResponseDto<TransactionDto> getAllTransactions(int pageNumber, int pageSize) {
-        
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-       
         Page<Transaction> transactionPage = transactionRepo.findAll(pageable);
 
         List<TransactionDto> transactionDtoList = new ArrayList<>();
 
-       
         for (Transaction transaction : transactionPage.getContent()) {
             TransactionDto transactionDto = toTransactionDtoMapper(transaction);
             transactionDtoList.add(transactionDto);
         }
 
-        
         PageResponseDto<TransactionDto> transactionPageDto = new PageResponseDto<>();
         transactionPageDto.setTotalPages(transactionPage.getTotalPages());
         transactionPageDto.setTotalElements(transactionPage.getTotalElements());
@@ -183,14 +191,11 @@ public class TransactionServiceImpl implements TransactionService {
     
     @Override
     public List<TransactionDto> viewPassbook(long accountNumber) {
-        
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String firstName = authentication.getName();
-        
-        
+
         List<Account> userAccounts = accountRepo.findByCustomer_FirstName(firstName);
 
-        
         boolean hasAccess = userAccounts.stream()
                                         .anyMatch(account -> account.getAccountNumber() == accountNumber);
 
@@ -198,29 +203,38 @@ public class TransactionServiceImpl implements TransactionService {
             throw new AccessDeniedException("You do not have access to this account.");
         }
 
-        
         List<Transaction> transactions = transactionRepo.findByAccount_AccountNumber(accountNumber);
 
-        
         List<TransactionDto> transactionDtos = transactions.stream()
                                                           .map(this::toTransactionDtoMapper)
                                                           .collect(Collectors.toList());
+
+        // Trigger the batch job with accountNumber parameter
+        try {
+            JobParameters jobParameters = new JobParametersBuilder()
+                .addLong("accountNumber", accountNumber)
+                .addString("timestamp", Instant.now().toString())
+                .toJobParameters();
+            JobExecution jobExecution = jobLauncher.run(exportJob, jobParameters);
+            logger.info("Batch job completed with status: {}", jobExecution.getStatus());
+        } catch (JobExecutionException e) {
+            logger.error("Failed to execute batch job for accountNumber: {}", accountNumber, e);
+            throw new RuntimeException("Failed to execute batch job", e);
+        }
 
         return transactionDtos;
     }
 
 
-    @Override
-	public PageResponseDto<TransactionDto> getTransactionsByCustomerId(int customerId, int pageNumber, int pageSize) {
-    	Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-        
+    @Override
+    public PageResponseDto<TransactionDto> getTransactionsByCustomerId(int customerId, int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+
         Page<Transaction> transactionPage = transactionRepo.findByAccount_Customer_CustomerId(customerId, pageable);
 
-        
         List<TransactionDto> transactionDtoList = new ArrayList<>();
 
-        
         for (Transaction transaction : transactionPage.getContent()) {
             TransactionDto transactionDto = toTransactionDtoMapper(transaction);
             transactionDtoList.add(transactionDto);
@@ -234,24 +248,16 @@ public class TransactionServiceImpl implements TransactionService {
         transactionPageDto.setIslastPage(transactionPage.isLast());
 
         return transactionPageDto;
-	}
-    
-    
-   
-    private TransactionDto toTransactionDtoMapper(Transaction transaction) {
-         TransactionDto transactionDto = new TransactionDto();
-           transactionDto.setTransactionId(transaction.getTransactionId()); 
-            transactionDto.setTransactionType(transaction.getTransactionType().toString());
-            transactionDto.setAmount(transaction.getAmount());
-            transactionDto.setAccountNumber(transaction.getAccount().getAccountNumber());
-     transactionDto.setTransferAccountNumber(transaction.getTransferAccountNumber());       
-     transactionDto.setDate(transaction.getDate());
-	return transactionDto;       
-        
     }
-   
-    
 
-	
+    private TransactionDto toTransactionDtoMapper(Transaction transaction) {
+        TransactionDto transactionDto = new TransactionDto();
+        transactionDto.setTransactionId(transaction.getTransactionId()); 
+        transactionDto.setTransactionType(transaction.getTransactionType().toString());
+        transactionDto.setAmount(transaction.getAmount());
+        transactionDto.setAccountNumber(transaction.getAccount().getAccountNumber());
+        transactionDto.setTransferAccountNumber(transaction.getTransferAccountNumber());       
+        transactionDto.setDate(transaction.getDate());
+        return transactionDto;
+    }
 }
-

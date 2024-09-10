@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;JobCompletionNotificationListner.java&apos; to &apos;14_bank-app/src/main/java/com.techlabs.bank.config&apos;&#x0D;&#x0A;- Original project: &apos;19_BatchProcessing-app&apos;&#x0D;&#x0A;- Destination element: &apos;14_bank-app/src/main/java/com.techlabs.bank.config&apos;&#x0D;&#x0A;- Original element: &apos;com.techlabs.batch.config.JobCompletionNotificationListner.java&apos;" description="Copy compilation unit" destination="=14_bank-app/src\/main\/java=/optional=/true=/=/maven.pomderived=/true=/&lt;com.techlabs.bank.config" element1="/src\/main\/java=/optional=/true=/=/maven.pomderived=/true=/&lt;com.techlabs.batch.config{JobCompletionNotificationListner.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1725966571445" units="1" version="1.0"/>
+</session>

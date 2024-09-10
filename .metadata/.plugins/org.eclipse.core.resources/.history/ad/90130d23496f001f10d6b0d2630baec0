@@ -1,0 +1,43 @@
+package com.techlabs.bank.config;
+
+import com.techlabs.bank.dto.TransactionDto;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+
+@Component
+public class CsvFileWriter implements ItemWriter<TransactionDto> {
+
+    @Value("${batch.output.file}")
+    private String outputFilePath;
+
+    @Override
+    public void write(List<? extends TransactionDto> items) throws Exception {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath, true));
+             CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT
+                     .withHeader("TransactionId", "TransactionType", "Amount", "AccountNumber", "TransferAccountNumber", "Date"))) {
+
+            for (TransactionDto dto : items) {
+                csvPrinter.printRecord(dto.getTransactionId(), dto.getTransactionType(), dto.getAmount(),
+                        dto.getAccountNumber(), dto.getTransferAccountNumber(), dto.getDate());
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write CSV file", e);
+        }
+    }
+
+	@Override
+	public void write(Chunk<? extends TransactionDto> arg0) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+}

@@ -1,0 +1,99 @@
+package com.techlabs.bank.config;
+
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.database.JpaPagingItemReader;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import com.techlabs.bank.dto.TransactionDto;
+import com.techlabs.bank.entity.Transaction;
+
+import jakarta.persistence.EntityManagerFactory;
+
+@Configuration
+@EnableBatchProcessing
+public class BatchConfiguration {
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+    private final PlatformTransactionManager transactionManager;
+
+    public BatchConfiguration(JobBuilderFactory jobBuilderFactory, 
+                              StepBuilderFactory stepBuilderFactory,
+                              EntityManagerFactory entityManagerFactory,
+                              PlatformTransactionManager transactionManager) {
+        this.jobBuilderFactory = jobBuilderFactory;
+        this.stepBuilderFactory = stepBuilderFactory;
+        this.entityManagerFactory = entityManagerFactory;
+        this.transactionManager = transactionManager;
+    }
+
+    @Bean
+    public FlatFileItemWriter<TransactionDto> writer() {
+        FlatFileItemWriter<TransactionDto> writer = new FlatFileItemWriter<>();
+        writer.setResource(new FileSystemResource("transactions.csv"));
+
+        DelimitedLineAggregator<TransactionDto> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+
+        BeanWrapperFieldExtractor<TransactionDto> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[] {"transactionId", "transactionType", "amount", "accountNumber", "transferAccountNumber", "date"});
+        lineAggregator.setFieldExtractor(fieldExtractor);
+
+        writer.setLineAggregator(lineAggregator);
+        return writer;
+    }
+
+    @Bean
+    public JpaPagingItemReader<Transaction> reader() {
+        JpaPagingItemReader<Transaction> reader = new JpaPagingItemReader<>();
+        reader.setEntityManagerFactory(entityManagerFactory);
+        reader.setQueryString("SELECT t FROM Transaction t");
+        reader.setPageSize(10);
+        return reader;
+    }
+
+    @Bean
+    public ItemProcessor<Transaction, TransactionDto> processor() {
+        return transaction -> {
+            TransactionDto dto = new TransactionDto();
+            dto.setTransactionId(transaction.getTransactionId());
+            dto.setTransactionType(transaction.getTransactionType().toString());
+            dto.setAmount(transaction.getAmount());
+            dto.setAccountNumber(transaction.getAccount().getAccountNumber());
+            dto.setTransferAccountNumber(transaction.getTransferAccountNumber());
+            dto.setDate(transaction.getDate());
+            return dto;
+        };
+    }
+
+    @Bean
+    public Step step1() {
+        StepBuilder stepBuilder = stepBuilderFactory.get("step1");
+        return stepBuilder.<Transaction, TransactionDto>chunk(10)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
+                .transactionManager(transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job exportTransactionJob() {
+        JobBuilder jobBuilder = jobBuilderFactory.get("exportTransactionJob");
+        return jobBuilder.start(step1()).build();
+    }
+}

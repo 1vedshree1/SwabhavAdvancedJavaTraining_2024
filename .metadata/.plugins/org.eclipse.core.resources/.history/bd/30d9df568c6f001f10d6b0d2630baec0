@@ -1,0 +1,86 @@
+package com.techlabs.bank.config;
+
+import javax.sql.DataSource;
+
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import com.techlabs.bank.dto.TransactionDto;
+
+@Configuration
+public class PassbookBatchConfig {
+
+    @Bean
+    public DataSourceTransactionManager transactionManager(DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Bean
+    public JdbcCursorItemReader<TransactionDto> transactionReader(DataSource dataSource) {
+        return new JdbcCursorItemReaderBuilder<TransactionDto>()
+                .dataSource(dataSource)
+                .name("transactionReader")
+                .sql("SELECT transaction_id,  transaction_type, amount, transfer_account_number, date FROM transactions")
+                .rowMapper((rs, rowNum) -> new TransactionDto(
+                        rs.getInt("transaction_id"),
+                        rs.getString("transaction_type"),
+                        rs.getDouble("amount"),
+                        rs.getLong("account_number"),
+                        rs.getLong("transfer_account_number"),
+                        rs.getDate("date")
+                ))
+                .build();
+    }
+
+    @Bean
+    public FlatFileItemWriter<TransactionDto> transactionWriter() {
+        return new FlatFileItemWriterBuilder<TransactionDto>()
+                .name("transactionWriter")
+                .resource(new FileSystemResource("passbook_output.csv"))
+                .lineAggregator(new DelimitedLineAggregator<TransactionDto>() {{
+                    setDelimiter(",");
+                    setFieldExtractor(new BeanWrapperFieldExtractor<TransactionDto>() {{
+                        setNames(new String[] { 
+                            "transactionId", 
+                            "transactionType", 
+                            "amount",       
+                            "transferAccountNumber", 
+                            "date" 
+                        });
+                    }});
+                }})
+                .build();
+    }
+
+    @Bean
+    public Step exportStep(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
+                          JdbcCursorItemReader<TransactionDto> transactionReader, FlatFileItemWriter<TransactionDto> transactionWriter) {
+        return new StepBuilder("exportTransactions", jobRepository)
+                .<TransactionDto, TransactionDto>chunk(10)
+                .reader(transactionReader)
+                .writer(transactionWriter)
+                .transactionManager(transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Job exportJob(JobRepository jobRepository, Step exportStep) {
+        return new JobBuilder("exportJob", jobRepository)
+                .start(exportStep)
+                .build();
+    }
+}

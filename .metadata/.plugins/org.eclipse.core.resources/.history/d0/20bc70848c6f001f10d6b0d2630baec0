@@ -1,0 +1,100 @@
+package com.techlabs.bank.config;
+
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
+import org.springframework.batch.item.file.transform.LineAggregator;
+import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.core.RowMapper;
+
+import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+@Configuration
+@EnableBatchProcessing
+public class PassbookConfig {
+
+    @Autowired
+    private JobBuilderFactory jobBuilderFactory;
+
+    @Autowired
+    private StepBuilderFactory stepBuilderFactory;
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Bean
+    public FlatFileItemWriter<TransactionDto> passbookWriter() {
+        BeanWrapperFieldExtractor<TransactionDto> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[] {"transactionId", "transactionType", "amount", "accountNumber", "transferAccountNumber", "date"});
+
+        DelimitedLineAggregator<TransactionDto> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+        lineAggregator.setFieldExtractor(fieldExtractor);
+
+        return new FlatFileItemWriterBuilder<TransactionDto>()
+                .name("passbookWriter")
+                .resource(new FileSystemResource("passbook.csv"))
+                .lineAggregator(lineAggregator)
+                .build();
+    }
+
+    @Bean
+    public JdbcCursorItemReader<TransactionDto> passbookReader() {
+        return new JdbcCursorItemReaderBuilder<TransactionDto>()
+                .name("passbookReader")
+                .dataSource(dataSource)
+                .sql("SELECT t.transaction_id, t.transaction_type, t.amount, a.account_number, t.transfer_account_number, t.transaction_date " +
+                     "FROM transactions t " +
+                     "JOIN accounts a ON t.account_id = a.account_id " +
+                     "WHERE a.account_number = :accountNumber")
+                .rowMapper(new RowMapper<TransactionDto>() {
+                    @Override
+                    public TransactionDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        TransactionDto dto = new TransactionDto();
+                        dto.setTransactionId(rs.getInt("transaction_id"));
+                        dto.setTransactionType(rs.getString("transaction_type"));
+                        dto.setAmount(rs.getDouble("amount"));
+                        dto.setAccountNumber(rs.getLong("account_number"));
+                        dto.setTransferAccountNumber(rs.getLong("transfer_account_number"));
+                        dto.setDate(rs.getDate("transaction_date"));
+                        return dto;
+                    }
+                })
+                .build();
+    }
+
+    @Bean
+    public Step passbookStep() {
+        return stepBuilderFactory.get("passbookStep")
+                .<TransactionDto, TransactionDto>chunk(10)
+                .reader(passbookReader())
+                .writer(passbookWriter())
+                .build();
+    }
+
+    @Bean
+    public Job passbookJob() {
+        return jobBuilderFactory.get("passbookJob")
+                .start(passbookStep())
+                .build();
+    }
+}
