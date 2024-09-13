@@ -52,6 +52,8 @@ public class AuthServiceImpl implements AuthService {
 	private JwtTokenProvider jwtTokenProvider;
 	@Autowired
     private CaptchaService captchaService;
+	@Autowired
+    private EmailNotificationService emailNotification;
 	
 	private static final Logger logger = LoggerFactory.getLogger(AuthServiceImpl.class);
 	
@@ -103,8 +105,14 @@ public class AuthServiceImpl implements AuthService {
 	        customer.setEmail(customerDto.getEmail());
 	        customer.setPassword(passwordEncoder.encode(customerDto.getPassword())); // Encrypt password
 	        customer.setUser(user);
+	        
+	        Customer dbcustomer = customerRepo.save(customer);
+	        String message = String.format("Hello "+customer.getFirstName()+"\n"+"Thanks for registering, Your registration has been successfull");
+	        String recipientEmail= customer.getEmail();
+	        String subject="Registration Successfull";
+	        emailNotification.sendNotification(recipientEmail, message, subject);
 
-	        return customerRepo.save(customer);
+	        return dbcustomer;
 	     
 	     
 	 }

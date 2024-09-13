@@ -1,6 +1,8 @@
 package com.techlabs.bank.service;
 
 public interface EmailNotificationService {
-	 void sendTransactionNotification(String recipient,String message);
+	
+
+	void sendNotification(String recipient, String message, String subject);
 
 }

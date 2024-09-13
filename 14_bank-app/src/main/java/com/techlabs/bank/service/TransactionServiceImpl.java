@@ -82,6 +82,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
         
         String message = String.format("Transaction Type: %s\nAmount: %.2f\nFrom Account: %d\n", transactionType, amount, fromAccountNumber);
+        String subject = "Transaction Alert";
         if (transactionType.equalsIgnoreCase("TRANSFER")) {
             message += String.format("To Account: %d\n", transferAccountNumber);
         }
@@ -104,7 +105,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
         
         String recipientEmail = getEmailByUsername(username);
-        emailNotification.sendTransactionNotification(recipientEmail, message);
+        emailNotification.sendNotification(recipientEmail, message, subject);
     }
 
     private void debit(Account account, double amount) {

@@ -19,6 +19,8 @@ public class AccountServiceImpl implements AccountService {
 	AccountRepository accountRepo;
 	@Autowired
 	CustomerService customerService;
+	@Autowired
+	EmailNotificationService emailNotification;
 
 	@Override
 	public Account addAccount(AccountDto accountDto) {
@@ -31,8 +33,13 @@ public class AccountServiceImpl implements AccountService {
 		account.setAccountType(accountDto.getAccountType());
 		account.setBalance(accountDto.getBalance());
 		account.setCustomer(customer);
-
-		return accountRepo.save(account);
+		account = accountRepo.save(account);
+		
+		String message= String.format("Congratulations, Your account has been created successfully, your account numbr is "+ account.getAccountNumber());
+        String recipientEmail = customer.getEmail();
+        String subject="Account Created";
+        emailNotification.sendNotification(recipientEmail, message, subject);
+		return account;
 
 	}
 

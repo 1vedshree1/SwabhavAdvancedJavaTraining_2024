@@ -1,6 +1,0 @@
-package com.techlabs.bank.service;
-
-public interface EmailNotificationService {
-	 void sendTransactionNotification(String message);
-
-}

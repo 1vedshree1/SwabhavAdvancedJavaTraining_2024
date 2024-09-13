@@ -15,11 +15,11 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
   
 
 	@Override
-	public void sendTransactionNotification(String recipient,String message) {
-		// TODO Auto-generated method stub
+	public void sendNotification(String recipient,String message,String subject) {
+		
 		SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(recipient);
-        mailMessage.setSubject("Transaction Alert");
+        mailMessage.setSubject(subject);
         mailMessage.setText(message);
 
         mailSender.send(mailMessage);
