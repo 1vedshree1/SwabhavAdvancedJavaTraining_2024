@@ -61,5 +61,16 @@ public class TransactionController {
         
     }
     
+    @PostMapping("transaction/send-passbook")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<String> sendPassbookToUser(@RequestParam long accountNumber) {
+        try {
+            transactionService.sendPassbookToUser(accountNumber);
+            return ResponseEntity.ok("Passbook has been sent to your email.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to send passbook: " + e.getMessage());
+        }
+    }
+    
    
 }

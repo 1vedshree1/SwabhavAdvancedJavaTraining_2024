@@ -22,6 +22,8 @@ public interface TransactionService {
 
 	List<TransactionDto> viewPassbook(long accountNumber);
 
+	void sendPassbookToUser(long accountNumber);
+
 	
 
 }

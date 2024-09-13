@@ -1,5 +1,6 @@
 package com.techlabs.bank.service;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,6 +25,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.itextpdf.text.DocumentException;
+import com.techlabs.bank.config.PdfGenerator;
 import com.techlabs.bank.dto.PageResponseDto;
 import com.techlabs.bank.dto.TransactionDto;
 import com.techlabs.bank.entity.Account;
@@ -224,6 +227,45 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return transactionDtos;
+    }
+
+    @Override
+    @Transactional
+    public void sendPassbookToUser(long accountNumber) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String firstName = authentication.getName();
+        
+        List<Account> userAccounts = accountRepo.findByCustomer_FirstName(firstName);
+        
+        boolean hasAccess = userAccounts.stream()
+                                        .anyMatch(account -> account.getAccountNumber() == accountNumber);
+
+        if (!hasAccess) {
+            throw new AccessDeniedException("You do not have access to this account.");
+        }
+
+        List<Transaction> transactions = transactionRepo.findByAccount_AccountNumber(accountNumber);
+        List<TransactionDto> transactionDtos = transactions.stream()
+                                                          .map(this::toTransactionDtoMapper)
+                                                          .collect(Collectors.toList());
+
+        // Generate PDF
+        byte[] pdfBytes = null;
+        
+            try {
+				pdfBytes = PdfGenerator.generatePassbookPdf(transactionDtos);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (DocumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        
+
+        // Send Email
+        String recipientEmail = getEmailByUsername(firstName);
+        emailNotification.sendNotificationWithAttachment(recipientEmail, "Your Passbook is attached.", "Passbook Report", pdfBytes, "passbook.pdf");
     }
 
 
